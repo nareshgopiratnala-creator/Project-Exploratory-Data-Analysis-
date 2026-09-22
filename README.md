@@ -1,10 +1,64 @@
-Crime Incidents Analysis & Data Cleaning PipelineA vectorized data cleaning, validation, and exploratory data analysis (EDA) pipeline for public safety incident records (crime_incidents.csv), implemented strictly using pandas and numpy.
-📌 Project OverviewThis project ingests raw incident records containing non-standardized categorical values, anomalous coordinate and numeric entries, missing timestamps, and duplicate rows. It standardizes the data into an analysis-ready tabular dataset and extracts baseline crime distribution metrics.
-🛠 Tech StackLanguage: Python 3.9+Core Libraries:pandas (Vectorized string, categorical, and datetime processing)numpy (Array-level conditional assertions and numeric bounds checking)
-🧼 Data Issues & RemediationStrategy
-ColumnRaw State / IssueTransformation / FixVectorized Methodincident_id200 duplicate recordsDeduplicated on unique identifierdf.drop_duplicates(subset=['incident_id'])crime_typeInconsistent naming ("asslt", "Burglry", "B&E")Canonical crime taxonomy mapping.str.lower().map(crime_map)districtAbbreviations ("sou", "cen", "mid")Standardized cardinal/neighborhood labels.str.lower().map(district_map)severityMixed numeric and string keys ("1", "med", "crit")Scaled to standard ordinal categories: Low, Medium, High, Critical.astype(str).str.lower().map(severity_map)suspect_age / victim_ageOutliers: negative ages (-90) and impossible values (298)Filtered to valid human ranges ($10 \le \text{suspect} \le 100$; $0 \le \text{victim} \le 105$)np.where(series.between(min, max), series, np.nan)property_loss_usdStored as string with negative losses (e.g. -$34,291.84)Coerced to numeric float; negative values masked to NaNpd.to_numeric(..., errors='coerce') + np.where()num_arrestsNegative values (-5)Masked values $< 0$ to NaNnp.where(arr >= 0, arr, np.nan)latitude / longitudeCoordinates exceeding US boundaries ($>100^\circ$ lat)Filtered to contiguous US envelope ($24^\circ \le \text{lat} \le 50^\circ$; $-125^\circ \le \text{lon} \le -65^\circ$)np.where(series.between(...))incident_datetimeRaw unparsed stringsConverted to datetime object; extracted year, month, day_name, and hourpd.to_datetime() & .dt accessors📊 Summary of Cleaned FindingsIncident Volume: 5,050 unique incidents analyzed after purging 200 duplicates.Top Crime Categories:Burglary: 316 casesHomicide: 282 casesArson: 272 casesTrespassing: 263 casesKidnapping: 259 casesWeapon Utilization: Firearms represent the leading category where a weapon was recorded (~44.2% of armed cases), followed by blunt objects and personal force.Financial Loss: Average reported damage is $24,923 per loss incident with an approximately uniform distribution between $0 and $50,000.Case Clearance:Closed: 34.6%Open: 25.8%Under Investigation: 25.2%Pending: 16.8%🚀 Getting Started1. PrerequisitesEnsure you have Python installed along with pandas and numpy:pip install pandas numpy
-2. File Structure├── crime_incidents.csv      # Raw source dataset
-├── clean_and_eda.py        # Vectorized pipeline script
-└── README.md               # Project documentation
-3. Running the PipelineExecute the script via terminal:python clean_and_eda.py
-💡 Vectorization & Performance NoteAll operations in this pipeline avoid row-level iteration (df.apply(), iterrows(), Python for loops). By executing through C-optimized underlying structures via Series.map(), Series.between(), and np.where(), the entire pipeline runs in under 50 milliseconds on the 5,000+ incident records.
+# Crime Incidents Data Cleaning & Exploratory Data Analysis (EDA)
+
+A Python-based data cleaning and exploratory data analysis pipeline for the `crime_incidents.csv` dataset, implemented using vectorized operations in **pandas** and **numpy**.
+
+---
+
+## Overview
+
+Real-world incident report datasets often suffer from mixed data types, typographical errors, irregular category codes, out-of-range anomalies, and duplicate entries. This project implements a reproducible, vectorized cleaning workflow and provides summary statistics and baseline distributions across temporal, geographic, and incident-level dimensions.
+
+---
+
+## Dataset Summary
+
+- **Raw Dimensions**: 5,250 records, 33 attributes
+- **Deduplicated Records**: 5,050 unique records (200 duplicate entries removed)
+- **Time Horizon**: 2018 – 2024
+- **Scope**: Municipal incident reports detailing crime classification, involved parties (suspects/victims), location, severity, weapon usage, and case resolution.
+
+---
+
+## Data Cleaning Workflow
+
+The cleaning pipeline utilizes vectorized operations (`.map()`, `np.where()`, `Series.between()`, and `.dt` accessors) to ensure performance and reproducibility:
+
+1. **Deduplication**: Identified and purged 200 duplicate records matching on primary key `incident_id`.
+2. **Text Normalization & Mapping**:
+   - `crime_type`: Standardized irregular entries and abbreviations (e.g., `'asslt'` $\rightarrow$ `'Assault'`, `'B&E'` / `'Burglry'` $\rightarrow$ `'Burglary'`, `'Homocide'` $\rightarrow$ `'Homicide'`).
+   - `district`: Standardized directional abbreviations (e.g., `'Sou'`, `'cen'`, `'eas'`) to title-cased district names.
+   - `severity`: Unified mixed integer codes and text strings (`'1'`, `'2'`, `'med'`, `'Crit'`) into four standard tiers: `Low`, `Medium`, `High`, `Critical`.
+   - `case_status`: Consolidated duplicate resolution tags (`'Resolved'` / `'closed'` $\rightarrow$ `'Closed'`, `'investgation'` $\rightarrow$ `'Under Investigation'`).
+   - `reported_online`: Cast boolean synonyms (`'yes'`, `'1'`, `'True'`, `'0'`, `'no'`) into native boolean types.
+3. **Outlier Filtering & Range Constraints**:
+   - **Ages (`suspect_age`, `victim_age`)**: Removed negative values and extreme anomalies ($>105$ years), constraining valid suspect age to $[10, 100]$ and victim age to $[0, 105]$.
+   - **Arrests (`num_arrests`)**: Removed negative counts ($\ge 0$ valid).
+   - **Financial Loss (`property_loss_usd`)**: Coerced string formats and removed negative loss amounts ($\ge 0$ valid).
+   - **Coordinates (`latitude`, `longitude`)**: Filtered out erroneous coordinate values outside contiguous US bounding limits ($24.0 \le \text{lat} \le 50.0$, $-125.0 \le \text{lon} \le -65.0$).
+4. **Temporal Feature Extraction**: Parsed `incident_datetime` into native datetime types and extracted `year`, `month`, `day_name`, and `hour`.
+
+---
+
+## Key Exploratory Findings
+
+### Summary Statistics (Cleaned Features)
+
+| Feature | Count | Mean | Std Dev | Min | Median (50%) | Max |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **Suspect Age** | 3,675 | 45.43 | 17.45 | 15.00 | 46.00 | 75.00 |
+| **Victim Age** | 4,119 | 49.88 | 23.31 | 10.00 | 50.00 | 90.00 |
+| **Arrests per Incident** | 4,551 | 2.46 | 1.72 | 0.00 | 2.00 | 5.00 |
+| **Property Loss (USD)** | 4,305 | $24,923.12 | $14,422.31 | $20.66 | $24,725.40 | $49,998.30 |
+
+### Categorical Distributions
+
+- **Top Offense Categories**: Burglary ($n = 316$), Homicide ($n = 282$), Arson ($n = 272$), Trespassing ($n = 263$), Kidnapping ($n = 259$).
+- **Weapon Utilization**: Where specified, **Firearms** represent the primary category ($1,539$ incidents), followed by **Blunt Objects** ($932$), and **Personal Weapons / Hands** ($659$).
+- **Case Resolutions**:
+  - Closed: 34.6% ($1,472$)
+  - Open: 25.8% ($1,096$)
+  - Under Investigation: 25.2% ($1,073$)
+  - Pending: 16.8% ($713$)
+- **Temporal Volume**: Yearly incident volume remained stable between 2018 and 2024, ranging from 598 to 653 recorded incidents per year.
+
+---
