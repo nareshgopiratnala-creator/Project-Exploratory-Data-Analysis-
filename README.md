@@ -52,7 +52,22 @@ The cleaning pipeline utilizes vectorized operations (`.map()`, `np.where()`, `S
 
 ### Categorical Distributions
 
-- **Top Offense Categories**: Burglary ($n = 316$), Homicide ($n = 282$), Arson ($n = 272$), Trespassing ($n = 263$), Kidnapping ($n = 259$).
+- **Top Offense Categories**:
+Fraud                437
+DUI                  353
+Arson                352
+Drug Offense         350
+Homicide             339
+Theft                339
+Kidnapping           332
+Sexual Assault       326
+Robbery              324
+Trespassing          323
+Vandalism            322
+Domestic Violence    320
+Burglary             316
+Cybercrime           309
+Assault              308
 - **Weapon Utilization**: Where specified, **Firearms** represent the primary category ($1,539$ incidents), followed by **Blunt Objects** ($932$), and **Personal Weapons / Hands** ($659$).
 - **Case Resolutions**:
   - Closed: 34.6% ($1,472$)
@@ -62,3 +77,11 @@ The cleaning pipeline utilizes vectorized operations (`.map()`, `np.where()`, `S
 - **Temporal Volume**: Yearly incident volume remained stable between 2018 and 2024, ranging from 598 to 653 recorded incidents per year.
 
 ---
+## Project Structure
+
+```text
+├── crime_incidents.csv        # Raw dataset
+├── crime_clean_data.py        # Vectorized cleaning pipeline script
+├── eda_analysis.ipynb         # Interactive exploratory data analysis notebook
+├── README.md                  # Project documentation
+└── requirements.txt           # Project dependencies
